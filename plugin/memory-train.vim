@@ -1,5 +1,21 @@
-function Rand()
-    return str2nr(matchstr(reltimestr(reltime()), '\v\.@<=\d+')[1:])
+if exists("g:loaded_memorytrain")
+    finish
+endif
+
+" 获取num_randoms个[low, high)中的随机数
+function SFRand(low, high, num_randoms)
+let data = []
+python << EOF
+import numpy as np
+import vim
+l = vim.eval("a:low")
+h = vim.eval("a:high")
+n = vim.eval("a:num_randoms")
+randoms = np.random.randint(int(l), int(h), int(n))
+result = vim.bindeval('data')
+result.extend(randoms)
+EOF
+return data
 endfunction
 
 let s:result = []
@@ -8,18 +24,21 @@ let s:SFCompute2Numbers = v:false
 function SFCompute2Numbers()
     if len(s:result) > 0
         let s:result = []
+        call execute("2,$normal dd")
+    else
+        call execute("edit GAME-计算式子的值")
+        let line1 = "***** 计算下面式子的值 *****"
+        call setline(1, line1)
     endif
 
     let num_to_method = [" + ", " - "]
-    call execute("edit GAME-计算式子的值")
-    let line1 = "***** 计算下面式子的值 *****"
-    call setline(1, line1)
 
     let num_tests = 1
     while num_tests <= 20
-        let method = Rand() % 2
-        let rand_num1 = Rand() % 900 + 100
-        let rand_num2 = Rand() % 900 + 100
+        let random_array = SFRand(100, 1000, 3)
+        let method = random_array[0] % 2
+        let rand_num1 = random_array[1]
+        let rand_num2 = random_array[2]
         if rand_num1 < rand_num2
             let temp_number = rand_num1
             let rand_num1 = rand_num2
@@ -45,6 +64,12 @@ endfunction
 
 
 function SFCompute2NumbersCheck()
+    if s:SFCompute2Numbers == v:false
+        echo "请首先调用SFCompute2Numbers进行出题答题!"
+        return
+    endif
+
+    let num_rights = 0
     " 对计算结果进行统计
     for i in range(2, 21)
         let current_line = getline(i)
@@ -52,19 +77,28 @@ function SFCompute2NumbersCheck()
         let str_value = strpart(current_line, begin_idx + 1)
         let value = str2nr(str_value)
 
-        echo value
         if value == get(s:result, i - 2)
             let current_line = current_line . "\tYES!"
             call setline(i, current_line)
+            let num_rights += 1
         else
             let current_line = current_line . "\tNO!"
             call setline(i, current_line)
         endif
     endfor
 
-    
+    let output_list = []
+    call add(output_list, "============================")
+    call add(output_list, "========  统计结果 =========")
+    call add(output_list, "============================")
+    call add(output_list, "题目总数为\t\t" . string(20))
+    call add(output_list, "做对题目数为\t" . string(num_rights))
+    call add(output_list, "做对比例为\t\t" . string(num_rights * 1.0 / 20 * 100) . "%.")
+    call append(line('$'), output_list)
+
     " 清理变量和buffer
     let s:result = []
     let s:SFCompute2Numbers = v:false
-    "call execute("1,$normal dd")
 endfunction
+
+let g:loaded_memorytrain = 1
