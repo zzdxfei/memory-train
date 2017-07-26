@@ -3,7 +3,7 @@ if exists("g:loaded_memorytrain")
 endif
 
 " 获取num_randoms个[low, high)中的随机数
-function SFRand(low, high, num_randoms)
+function s:SFRand(low, high, num_randoms)
 let data = []
 python << EOF
 import numpy as np
@@ -21,7 +21,7 @@ endfunction
 let s:result = []
 let s:SFCompute2Numbers = v:false
 
-function SFCompute2Numbers()
+function s:SFCompute2Numbers()
     if len(s:result) > 0
         let s:result = []
         call execute("2,$normal dd")
@@ -35,7 +35,7 @@ function SFCompute2Numbers()
 
     let num_tests = 1
     while num_tests <= 20
-        let random_array = SFRand(100, 1000, 3)
+        let random_array = s:SFRand(100, 1000, 3)
         let method = random_array[0] % 2
         let rand_num1 = random_array[1]
         let rand_num2 = random_array[2]
@@ -63,7 +63,7 @@ function SFCompute2Numbers()
 endfunction
 
 
-function SFCompute2NumbersCheck()
+function s:SFCompute2NumbersCheck()
     if s:SFCompute2Numbers == v:false
         echo "请首先调用SFCompute2Numbers进行出题答题!"
         return
@@ -100,5 +100,25 @@ function SFCompute2NumbersCheck()
     let s:result = []
     let s:SFCompute2Numbers = v:false
 endfunction
+
+if !hasmapto('<Plug>SFcompute')
+map <unique> <leader>s <Plug>SFcompute
+endif
+
+" Note that instead of s:Add() we use <SID>Add() here.  That is because the
+" mapping is typed by the user, thus outside of the script.  The <SID> is
+" translated to the script ID, so that Vim knows in which script to look for
+" the Add() function.
+ 
+" This is a bit complicated, but it's required for the plugin to work together
+" with other plugins.  The basic rule is that you use <SID>Add() in mappings and
+" s:Add() in other places (the script itself, autocommands, user commands).
+
+" Note: ":map <script>" and ":noremap <script>" do the same thing.  The
+" "<script>" overrules the command name.  Using ":noremap <script>" is
+" preferred, because it's clearer that remapping is (mostly) disabled.
+ 
+noremap <unique> <script> <Plug>SFcompute <SID>SFcompute
+noremap <SID>SFcompute :call <SID>SFCompute2Numbers()<CR>
 
 let g:loaded_memorytrain = 1
